@@ -8,12 +8,9 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.full
     container_name: picoclaw-agent-full
-    profiles:
-      - agent
     volumes:
-      - ../config/config.json:/root/.picoclaw/config.json:ro
-      - picoclaw-workspace:/root/.picoclaw/workspace
-      - picoclaw-npm-cache:/root/.npm # npm cache for faster MCP server installs
+      - ./data/picoclaw:/root/.picoclaw
+      - ./data/picoclaw-npm-cache:/root/.npm
     entrypoint: ["picoclaw", "agent"]
     stdin_open: true
     tty: true
@@ -27,18 +24,27 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.full
     container_name: picoclaw-gateway-full
-    restart: unless-stopped
-    profiles:
-      - gateway
+    restart: on-failure
     volumes:
-      # Configuration file
-      - ../config/config.json:/root/.picoclaw/config.json:ro
-      # Persistent workspace (sessions, memory, logs)
-      - picoclaw-workspace:/root/.picoclaw/workspace
-      # NPM cache for faster MCP server installs
-      - picoclaw-npm-cache:/root/.npm
+      - ./data/picoclaw:/root/.picoclaw
+      - ./data/picoclaw-npm-cache:/root/.npm
     command: ["gateway"]
 
-volumes:
-  picoclaw-workspace:
-  picoclaw-npm-cache: # Cache npm packages to speed up MCP server installations
+  # ─────────────────────────────────────────────
+  # PicoClaw Launcher (Web Console + Gateway)
+  #   docker compose -f docker/docker-compose.full.yml --profile launcher up
+  # ─────────────────────────────────────────────
+  picoclaw-launcher:
+    image: docker.io/sipeed/picoclaw:launcher
+    labels:
+      dev.orbstack.http-port: 18800
+      dev.orbstack.https-port: 18800
+    container_name: picoclaw-launcher
+    restart: on-failure
+    environment:
+      - PICOCLAW_GATEWAY_HOST=0.0.0.0
+    ports:
+      - "127.0.0.1:18800:18800"
+      - "127.0.0.1:18790:18790"
+    volumes:
+      - ./data/picoclaw:/root/.picoclaw
