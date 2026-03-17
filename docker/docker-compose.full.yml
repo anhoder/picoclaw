@@ -7,10 +7,12 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.full
-    container_name: picoclaw-agent-full
+    container_name: picoclaw-agent
+    environment:
+      - DINGTALK_WEBHOOK_TOKEN=${DINGTALK_WEBHOOK_TOKEN}
+      - TZ=Asia/Shanghai
     volumes:
-      - ./data/picoclaw:/root/.picoclaw
-      - ./data/picoclaw-npm-cache:/root/.npm
+      - ./data:/root/.picoclaw
     entrypoint: ["picoclaw", "agent"]
     stdin_open: true
     tty: true
@@ -23,28 +25,37 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.full
-    container_name: picoclaw-gateway-full
+    profiles:
+      - gateway
+    container_name: picoclaw-gateway
     restart: on-failure
+    environment:
+      - DINGTALK_WEBHOOK_TOKEN=${DINGTALK_WEBHOOK_TOKEN}
+      - TZ=Asia/Shanghai
     volumes:
-      - ./data/picoclaw:/root/.picoclaw
-      - ./data/picoclaw-npm-cache:/root/.npm
+      - ./data:/root/.picoclaw
     command: ["gateway"]
 
   # ─────────────────────────────────────────────
   # PicoClaw Launcher (Web Console + Gateway)
-  #   docker compose -f docker/docker-compose.full.yml --profile launcher up
+  #   docker compose -f docker/docker-compose.yml --profile launcher up
   # ─────────────────────────────────────────────
   picoclaw-launcher:
-    image: docker.io/sipeed/picoclaw:launcher
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.full
     labels:
       dev.orbstack.http-port: 18800
-      dev.orbstack.https-port: 18800
     container_name: picoclaw-launcher
     restart: on-failure
     environment:
       - PICOCLAW_GATEWAY_HOST=0.0.0.0
+      - DINGTALK_WEBHOOK_TOKEN=${DINGTALK_WEBHOOK_TOKEN}
+      - TZ=Asia/Shanghai
     ports:
       - "127.0.0.1:18800:18800"
       - "127.0.0.1:18790:18790"
     volumes:
-      - ./data/picoclaw:/root/.picoclaw
+      - ./data:/root/.picoclaw
+    entrypoint: ["picoclaw-launcher"]
+    command: ["-public", "-no-browser"]
